@@ -4,8 +4,8 @@ module app;
 
 import base;
 
-enum programName = "Verse Pad";
-enum projects = "projects";
+enum programName = "Verse Pad"; /// Program name
+enum projects = "Projects"; /// List of projects
 
 /**
 	The Main
@@ -33,7 +33,7 @@ int main(string[] args) {
 
     //writeln("Ovr a million: ", addCommas(1_234_567));
 
-    int retVal = setupAndStuff(args);
+    immutable retVal = setupAndStuff(args);
 	if (retVal != 0) {
         if (retVal == -10)
             writeln("You must pass a name (eg. './verpad Joel')");
@@ -44,6 +44,7 @@ int main(string[] args) {
 	return 0;
 }
 
+/// Set up stuff
 auto setupAndStuff(in string[] args) {
     string userName;
     if (args.length > 1) {
@@ -91,7 +92,6 @@ auto setupAndStuff(in string[] args) {
     g_mode = Mode.edit;
     g_terminal = true;
 
-    jx.addToHistory(WELCOME);
     jx.showHistory = false;
 
     g_window.setFramerateLimit(60);
@@ -111,10 +111,11 @@ auto setupAndStuff(in string[] args) {
 	return 0;
 }
 
+/// Run program
 void run(string[] files) {
-    import std.file: readText;
-    import std.path;
-    import std.string;
+    import std.file : readText;
+    import std.path : buildPath;
+    //import std.string : ;
 
     auto helpText = readText("_notes.txt");
     with(g_letterBase)
@@ -147,17 +148,19 @@ void run(string[] files) {
         //#windows version needed for short cut to quit
 
         // print for prompt, text depending on whether the section has any verses or not
+        /+
         if (enterPressed || firstRun) {
             firstRun = false;
             enterPressed = false;
-            if (! done)
-                updateFileNLetterBase("Enter Bible reference, (Enter 'help' for help):");
+            //if (! done)
+            //    updateFileNLetterBase("Enter verse reference:");
             g_letterBase.setLockAll(true);
             prefix = g_letterBase.count();
         }
+        +/
         // exit program if set to exit else get user input
         if (done == NO) {
-            import std.string;
+            import std.string : toLower;
             g_window.clear;
             
             g_letterBase.draw();
@@ -170,8 +173,18 @@ void run(string[] files) {
             g_window.display;
             
             if (enterPressed) {
-                userInput = g_letterBase.getText[prefix .. $].stripRight;
-                upDateStatus(userInput);
+                //g_letterBase.addText("\n");
+                /+  
+                size_t len = g_letterBase.getText.length;
+                if (prefix < 0 || prefix >= len) {
+                    "whoops..".gh;
+                } else { +/
+                    userInput = g_letterBase.getText[prefix .. $].stripRight;
+                    upDateStatus(userInput);
+                //}
+                
+                //auto txt = g_letterBase.getText;
+                //userInput = txt[txt.lastIndexOf("\n") + 1 .. $];
             }
         }
         if (userInput.length > 0) {
@@ -193,23 +206,41 @@ void run(string[] files) {
                         updateFileNLetterBase("Wrong amount of parameters!");
                         break;
                     }
-                    string fileName;
                     try {
-                        import std.conv;
+                        import std.conv : to;
 
                         const index = args[0].to!int;
                         if (index >= 0 && index < files.length)
-                            fileName = files[index];
+                            g_fileName = files[index];
                         else
                             throw new Exception("Index out of bounds");
                     } catch(Exception e) {
                         updateFileNLetterBase("Input error!");
                         break;
                     }
-                    loadProject(fileName);
-                    import std.path: stripExtension;
-                    updateFileNLetterBase(fileName.stripExtension, " - project loaded..");
+                    loadProject(g_fileName);
+                    updateFileNLetterBase(g_fileName, " - project loaded..");
                 break;
+				case "save":
+                    if (args.length == 0) {
+                        updateFileNLetterBase("File name missing!");
+                        break;
+                    }
+					int index;
+					try {
+                        import std.conv : to;
+                        index = args[0].to!int;
+						if (index >= 0 && index < files.length)
+							g_fileName = files[index];
+					} catch(Exception e) {
+						import std : join;
+						g_fileName = args.join(" ") ~ ".txt";
+					}
+					import std.stdio : File, write;
+					import std : buildPath;
+                    File(buildPath(projects,g_fileName), "w").write(g_letterBase.getText);
+                    updateFileNLetterBase(g_fileName, " - project saved..");
+				break;
                 case "cls", "clear":
                     clearScreen;
                     updateFileNLetterBase("Screen cleared..");
@@ -220,11 +251,17 @@ void run(string[] files) {
                 break;
                 default:
 					assert(g_bible, "Bible unallocated!");
-					updateFileNLetterBase(g_bible.argReference(g_bible.argReferenceToArgs(userInput)));
+					import std : indexOf, strip;
+					size_t end = userInput.indexOf("->");
+					if (end == -1)
+						end = userInput.length;
+					auto refe = userInput[0 .. end].strip;
+					updateFileNLetterBase(g_bible.argReference(g_bible.argReferenceToArgs(refe)).stripRight);
                 break;
             }
         }
         if (enterPressed) {
+            enterPressed = false;
             userInput.length = 0;
             g_letterBase.setLockAll(true);
             prefix = g_letterBase.count();
@@ -237,6 +274,7 @@ void clearScreen() {
     g_letterBase.setText("");
 }
 
+/// Collect project files
 void doProjects(ref string[] files, in bool show = true) {
     import std.file: dirEntries, SpanMode;
     import std.path: buildPath, dirSeparator, stripExtension;
@@ -249,15 +287,21 @@ void doProjects(ref string[] files, in bool show = true) {
     foreach(i, string name; dirEntries(buildPath(projects), "*.{txt}", SpanMode.shallow).enumerate) {
         import std.conv: to;
 
-        name = name.split(dirSeparator)[1];
+        //name = name.split(dirSeparator)[1];
         if (show)
             updateFileNLetterBase(i, " - ", name.stripExtension);
         files ~= name;
     }
 }
 
+/// Load project
 void loadProject(in string fileName) {
-    import std;
+    import std : readText, exists;
  
-    g_letterBase.setText(readText(fileName));
+	auto filen = fileName;
+	if (filen.exists) {
+		g_fileName = fileName;
+	    g_letterBase.setText(readText(filen));
+	} else
+		g_letterBase.addText(filen," - not found");
 }
