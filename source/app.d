@@ -55,8 +55,6 @@ auto setupAndStuff(in string[] args) {
         return -10;
     }
 	immutable WELCOME = "Welcome, " ~ userName ~ ", to " ~ programName;
-	g_window = new RenderWindow(VideoMode(1920, 1080),
-						WELCOME);
     g_checkPoints = true;
     if (int retVal = jec.setup != 0) {
         import std.stdio: writefln;
@@ -65,6 +63,9 @@ auto setupAndStuff(in string[] args) {
             __FILE__, __FUNCTION__, __LINE__, retVal);
         return -2;
     }
+
+	g_window = new RenderWindow(VideoMode(1920, 1080),
+						WELCOME);
 
     immutable g_fontSize = 40;
     g_font = new Font;
@@ -140,15 +141,16 @@ void run(string[] files) {
             }
         }
 
+        SDL_PumpEvents();
+
         version(OSX)
-            if ((Keyboard.isKeyPressed(Keyboard.Key.LSystem) ||
-                Keyboard.isKeyPressed(Keyboard.Key.RSystem)) &&
-                Keyboard.isKeyPressed(Keyboard.Key.Q))
+            if (g_keys[SDL_SCANCODE_LGUI].keyPressed &&
+                g_keys[SDL_SCANCODE_Q].keyInput)
                 done = YES;
+
         //#windows version needed for short cut to quit
 
         // print for prompt, text depending on whether the section has any verses or not
-        /+
         if (enterPressed || firstRun) {
             firstRun = false;
             enterPressed = false;
@@ -157,7 +159,7 @@ void run(string[] files) {
             g_letterBase.setLockAll(true);
             prefix = g_letterBase.count();
         }
-        +/
+
         // exit program if set to exit else get user input
         if (done == NO) {
             import std.string : toLower;
