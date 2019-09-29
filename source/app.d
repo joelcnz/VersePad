@@ -129,10 +129,13 @@ void run(string[] files) {
     prefix = g_letterBase.count();
     auto firstRun = true;
     auto done = NO;
+	
+//	SDL_Event event;
+	
     while(! done) {
         if (! g_window.isOpen())
             done = YES;
-
+	
         Event event;
 
         while(g_window.pollEvent(event)) {
@@ -140,7 +143,11 @@ void run(string[] files) {
                 done = YES;
             }
         }
-
+		/+
+		SDL_PollEvent(&event);
+		if(event.type == SDL_QUIT) // not work?!
+			done = YES;
++/
         SDL_PumpEvents();
 
         version(OSX)
