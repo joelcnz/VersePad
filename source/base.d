@@ -10,7 +10,7 @@ public {
     import arsdlib = arsd.dom;
 }
 
-public import jec, bible;
+public import jecsdl, bible, jmisc;
 
 immutable newline = "\n"; /// new line character
 enum YES = true; /// yes or true
@@ -28,6 +28,6 @@ void updateFileNLetterBase(T...)(T args) {
 
 StopWatch g_sw; /// Stop watch
 
-static this() {
+shared static this() {
 	g_sw.start;
 }
